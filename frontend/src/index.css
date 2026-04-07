@@ -1,0 +1,4 @@
+/* Reset or base styles if needed */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
