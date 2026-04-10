@@ -14,7 +14,7 @@ function App() {
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [pptxUrl, setPptxUrl] = useState('');
-  const [language, setLanguage] = useState('English');
+  const [language, setLanguage] = useState('Arabic Fusha');
   const [level, setLevel] = useState('student');
   
   const recognitionRef = useRef(null);
@@ -26,7 +26,7 @@ function App() {
       recognitionRef.current = new SpeechRecognition();
       recognitionRef.current.continuous = true;
       recognitionRef.current.interimResults = true;
-      recognitionRef.current.lang = language === 'Arabic' ? 'ar-SA' : 'en-US';
+      recognitionRef.current.lang = 'ar-SA';
 
       recognitionRef.current.onresult = (event) => {
         let interimTranscript = '';
@@ -149,7 +149,7 @@ function App() {
   };
 
   const currentSlide = slides[currentSlideIndex];
-  const isArabic = language === 'Arabic';
+  const isArabic = true; // Always Arabic now
 
   return (
     <div className={`app-container ${isArabic ? 'rtl' : ''}`}>
@@ -159,8 +159,8 @@ function App() {
         <h1>{isArabic ? 'معلم الذكاء الاصطناعي الصوتي' : 'AI Voice Teacher'}</h1>
         <div className="settings-bar">
           <div className="toggle-group">
-            <button onClick={() => setLanguage('English')} className={language === 'English' ? 'active' : ''}>EN</button>
-            <button onClick={() => setLanguage('Arabic')} className={language === 'Arabic' ? 'active' : ''}>AR</button>
+            <button onClick={() => setLanguage('Arabic Fusha')} className={language === 'Arabic Fusha' ? 'active' : ''}>فصحى</button>
+            <button onClick={() => setLanguage('Arabic Saudi')} className={language === 'Arabic Saudi' ? 'active' : ''}>سعودي</button>
           </div>
 
           <div className="toggle-group level-toggle">

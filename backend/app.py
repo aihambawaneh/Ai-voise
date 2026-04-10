@@ -40,25 +40,35 @@ async def generate_lecture():
     mode = data.get('mode', 'standard')
     level = data.get('level', 'student') # kid, student, or pro
 
-    if not topic:
-        return jsonify({"error": "Topic is required"}), 400
+    import uuid
+    request_id = str(uuid.uuid4())
+    user_folder = os.path.join(AUDIO_FOLDER, request_id)
+    if not os.path.exists(user_folder):
+        os.makedirs(user_folder)
 
     try:
         # 1. Ask the Brain to generate lesson data (pass level)
         slides_data = await brain.generate_lecture_data(topic, language, level)
         
-        # 2. PowerPoint Generation
-        pptx_filename = "lesson_free.pptx"
+        # 2. PowerPoint Generation - Unique Name
+        pptx_filename = f"lesson_{request_id}.pptx"
         pptx_path = os.path.join(STATIC_FOLDER, pptx_filename)
         brain.create_pptx(slides_data, pptx_path)
         
         # 3. Parallel Audio Generation
-        voice = "en-US-GuyNeural" if language == "English" else "ar-EG-ShakirNeural"
+        voice_map = {
+            "English": "en-US-GuyNeural",
+            "Arabic Fusha": "ar-EG-ShakirNeural",
+            "Arabic Saudi": "ar-SA-HamedNeural"
+        }
+        voice = voice_map.get(language, "ar-EG-ShakirNeural")
+        
         tasks = []
         for i, slide in enumerate(slides_data):
-            fn = f"audio_{i}_{int(time.time())}.mp3"
-            path = os.path.join(AUDIO_FOLDER, fn)
-            slide['audio_url'] = f"/static/audio/{fn}?t={int(time.time())}"
+            fn = f"audio_{i}.mp3"
+            path = os.path.join(user_folder, fn)
+            # URL relative to static
+            slide['audio_url'] = f"/static/audio/{request_id}/{fn}"
             if slide.get('explanation'):
                 tasks.append(brain.generate_audio(slide['explanation'], path, voice))
         
