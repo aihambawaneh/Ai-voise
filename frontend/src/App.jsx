@@ -46,41 +46,26 @@ function App() {
       recognitionRef.current.onerror = (event) => {
         console.error('Speech recognition error:', event.error);
         setIsRecording(false);
-        if (event.error === 'not-allowed') {
-          alert('Microphone access is blocked. Please allow it in browser settings.');
-        } else {
-          alert('Error with speech recognition: ' + event.error);
-        }
       };
-    } else {
-      console.warn('Speech Recognition not supported in this browser.');
     }
-  }, [language]);
+  }, []);
 
   const toggleRecording = () => {
-    if (!recognitionRef.current) {
-      alert('Your browser does not support voice recognition. Please use Chrome or Edge, or type manually.');
-      return;
-    }
-    
+    if (!recognitionRef.current) return;
     if (isRecording) {
       recognitionRef.current.stop();
     } else {
       setTranscript('');
-      try {
-        recognitionRef.current.start();
-        setIsRecording(true);
-      } catch (err) {
-        console.error('Start error:', err);
-        recognitionRef.current.stop();
-        setIsRecording(false);
-      }
+      recognitionRef.current.start();
+      setIsRecording(true);
     }
   };
 
   const handleGenerate = async (isRetry = false) => {
     if (!transcript.trim()) return;
+    stopAudio();
     setLoading(true);
+    setSlides([]); // Clear previous
     try {
       const response = await axios.post(`${API_BASE}/generate`, {
         topic: transcript,
@@ -93,30 +78,36 @@ function App() {
       setIsPlaying(false);
     } catch (error) {
       console.error('Error generating lecture:', error);
-      const msg = error.response?.data?.error || error.message || 'Network error or backend down';
-      alert('Connection Error: ' + msg);
+      alert('Error: ' + (error.response?.data?.error || error.message));
     } finally {
       setLoading(false);
     }
   };
 
+  const stopAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      setIsPlaying(false);
+    }
+  };
+
   const playSlideAudio = () => {
-    if (slides.length === 0) return;
+    if (!slides.length) return;
     const currentSlide = slides[currentSlideIndex];
     if (currentSlide.audio_url) {
       const audioUrl = `${API_BASE}${currentSlide.audio_url}`;
       if (audioRef.current.src !== audioUrl) {
           audioRef.current.src = audioUrl;
       }
-      audioRef.current.play();
+      audioRef.current.play().catch(e => console.error("Audio Play Error:", e));
       setIsPlaying(true);
     }
   };
 
   const togglePlay = () => {
     if (isPlaying) {
-      audioRef.current.pause();
-      setIsPlaying(false);
+      stopAudio();
     } else {
       playSlideAudio();
     }
@@ -137,26 +128,21 @@ function App() {
   }, [currentSlideIndex]);
 
   const nextSlide = () => {
-    if (currentSlideIndex < slides.length - 1) {
-      setCurrentSlideIndex(prev => prev + 1);
-    }
+    if (currentSlideIndex < slides.length - 1) setCurrentSlideIndex(prev => prev + 1);
   };
 
   const prevSlide = () => {
-    if (currentSlideIndex > 0) {
-      setCurrentSlideIndex(prev => prev - 1);
-    }
+    if (currentSlideIndex > 0) setCurrentSlideIndex(prev => prev - 1);
   };
 
   const currentSlide = slides[currentSlideIndex];
-  const isArabic = true; // Always Arabic now
 
   return (
-    <div className={`app-container ${isArabic ? 'rtl' : ''}`}>
+    <div className="app-container rtl">
       <audio ref={audioRef} onEnded={handleAudioEnd} />
       
       <header className="glass-header">
-        <h1>{isArabic ? 'معلم الذكاء الاصطناعي الصوتي' : 'AI Voice Teacher'}</h1>
+        <h1>{language === 'Arabic Saudi' ? 'مدرّس الـ AI السعودي' : 'معلّم الذكاء الاصطناعي'}</h1>
         <div className="settings-bar">
           <div className="toggle-group">
             <button onClick={() => setLanguage('Arabic Fusha')} className={language === 'Arabic Fusha' ? 'active' : ''}>فصحى</button>
@@ -164,42 +150,43 @@ function App() {
           </div>
 
           <div className="toggle-group level-toggle">
-            <button onClick={() => setLevel('kid')} className={level === 'kid' ? 'active kid' : ''} title="شرح مبسط للأطفال">🧸</button>
-            <button onClick={() => setLevel('student')} className={level === 'student' ? 'active student' : ''} title="شرح مدرسي متوازن">🎓</button>
-            <button onClick={() => setLevel('pro')} className={level === 'pro' ? 'active pro' : ''} title="شرح عميق للمحترفين">🚀</button>
+            <button onClick={() => setLevel('kid')} className={level === 'kid' ? 'active kid' : ''} title="أطفال">🧸</button>
+            <button onClick={() => setLevel('student')} className={level === 'student' ? 'active student' : ''} title="طلاب">🎓</button>
+            <button onClick={() => setLevel('pro')} className={level === 'pro' ? 'active pro' : ''} title="محترفين">🚀</button>
           </div>
         </div>
       </header>
 
       <main>
         {!slides.length ? (
-          <section className="input-section glass">
+          <section className="input-section">
             <div className="mic-container">
               <motion.button 
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 className={`mic-button ${isRecording ? 'recording' : ''}`}
                 onClick={toggleRecording}
               >
                 {isRecording ? <MicOff size={48} /> : <Mic size={48} />}
               </motion.button>
-              <p>{isRecording ? (isArabic ? 'أنا أستمع...' : 'Listening...') : (isArabic ? 'اضغط للتحدث عن موضوعك' : 'Tap to speak about your topic')}</p>
+              <h2 style={{fontSize: '2rem', margin: '0'}}>أهلاً بك، عن ماذا نذاكر اليوم؟</h2>
+              <p style={{color: 'var(--text-dim)'}}>{isRecording ? 'أنا أسمعك الآن...' : 'اضغط على الميكروفون وابدأ بالتحدث عن موضوعك'}</p>
             </div>
             
-            <div className="transcript-box glass">
+            <div className="transcript-box">
               <textarea 
-                placeholder={isArabic ? 'سوف يظهر صوتك هنا...' : 'Your speech will appear here...'}
+                placeholder="مثلاً: اشرح لي عن الثقوب السوداء..."
                 value={transcript}
                 onChange={(e) => setTranscript(e.target.value)}
               />
             </div>
 
             <button 
-              className="generate-button glass" 
-              onClick={handleGenerate} 
+              className="generate-button" 
+              onClick={() => handleGenerate()} 
               disabled={loading || !transcript.trim()}
             >
-              {loading ? <Loader2 className="animate-spin" /> : (isArabic ? 'توليد المحاضرة' : 'Generate Lecture')}
+              {loading ? <Loader2 className="animate-spin" /> : 'توليد المحاضرة الآن'}
             </button>
           </section>
         ) : (
@@ -208,54 +195,42 @@ function App() {
               <AnimatePresence mode="wait">
                 <motion.div 
                   key={currentSlideIndex}
-                  initial={{ opacity: 0, x: isArabic ? -50 : 50 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: isArabic ? 50 : -50 }}
-                  className="slide-card glass"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.4 }}
+                  className="slide-card"
                 >
+                  <div className="progress-bar">
+                    <div className="progress-fill" style={{ width: `${((currentSlideIndex + 1) / slides.length) * 100}%` }}></div>
+                  </div>
                   <h2 className="slide-title">{currentSlide.title}</h2>
                   <ul className="slide-points">
                     {currentSlide.points.map((point, i) => (
                       <li key={i}>{point}</li>
                     ))}
                   </ul>
-                  <div className="progress-bar">
-                    <div 
-                      className="progress-fill" 
-                      style={{ width: `${((currentSlideIndex + 1) / slides.length) * 100}%` }}
-                    ></div>
-                  </div>
                 </motion.div>
               </AnimatePresence>
 
-              <div className="player-controls glass">
-                <button onClick={prevSlide} disabled={currentSlideIndex === 0}><ChevronLeft /></button>
-                <button onClick={togglePlay} className="play-btn">
-                  {isPlaying ? <Pause /> : <Play />}
+              <div className="player-controls">
+                <button className="control-btn" onClick={prevSlide} disabled={currentSlideIndex === 0}><ChevronRight /></button>
+                <button onClick={togglePlay} className="control-btn play-toggle">
+                  {isPlaying ? <Pause size={32} /> : <Play size={32} />}
                 </button>
-                <button onClick={nextSlide} disabled={currentSlideIndex === slides.length - 1}><ChevronRight /></button>
+                <button className="control-btn" onClick={nextSlide} disabled={currentSlideIndex === slides.length - 1}><ChevronLeft /></button>
               </div>
 
               <div className="action-buttons">
-                <button 
-                  onClick={() => handleGenerate(true)} 
-                  className="retry-btn glass" 
-                  disabled={loading}
-                  title={isArabic ? 'لم أفهم، اشرح بطريقة أبسط' : "I didn't understand, simplify more"}
-                >
-                  {loading ? <Loader2 size={20} className="spin" /> : <HelpCircle size={20} />} 
-                  {isArabic ? 'لم أفهم' : "Didn't understand"}
+                <button onClick={() => handleGenerate(true)} className="action-btn" disabled={loading} title="شرح أبسط">
+                  <HelpCircle size={18} /> لم أفهم جيداً
                 </button>
-                <a href={`${API_BASE}${pptxUrl}`} download className="download-btn glass">
-                  <Download size={20} /> {isArabic ? 'تحميل PPTX' : 'Download PPTX'}
+                <a href={`${API_BASE}${pptxUrl}`} download className="action-btn primary">
+                  <Download size={18} /> تحميل البوربوينت
                 </a>
-                <button onClick={() => setSlides([])} className="reset-btn glass">
-                  <RefreshCw size={20} /> {isArabic ? 'موضوع جديد' : 'New Topic'}
+                <button onClick={() => { stopAudio(); setSlides([]); }} className="action-btn">
+                  <RefreshCw size={18} /> موضوع جديد
                 </button>
-              </div>
-              
-              <div className="slide-counter">
-                {currentSlideIndex + 1} / {slides.length}
               </div>
             </div>
           </section>

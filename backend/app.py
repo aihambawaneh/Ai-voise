@@ -24,6 +24,28 @@ for folder in [STATIC_FOLDER, AUDIO_FOLDER]:
     if not os.path.exists(folder):
         os.makedirs(folder)
 
+def cleanup_old_files():
+    """Delete files and folders older than 10 minutes."""
+    now = time.time()
+    minutes_limit = 10 * 60 
+    
+    # Cleanup audio folders
+    for item in os.listdir(AUDIO_FOLDER):
+        item_path = os.path.join(AUDIO_FOLDER, item)
+        if os.path.isdir(item_path):
+            if now - os.path.getmtime(item_path) > minutes_limit:
+                import shutil
+                shutil.rmtree(item_path)
+                print(f"🧹 Cleaned up old folder: {item}")
+
+    # Cleanup pptx files
+    for item in os.listdir(STATIC_FOLDER):
+        if item.endswith(".pptx"):
+            item_path = os.path.join(STATIC_FOLDER, item)
+            if now - os.path.getmtime(item_path) > minutes_limit:
+                os.remove(item_path)
+                print(f"🧹 Cleaned up old file: {item}")
+
 @app.route('/health')
 def health():
     return "OK", 200
@@ -34,6 +56,9 @@ def serve_static(filename):
 
 @app.route('/generate', methods=['POST'])
 async def generate_lecture():
+    # Trigger cleanup of old files on every new request
+    cleanup_old_files()
+    
     data = request.json
     topic = data.get('topic', '')
     language = data.get('language', 'English')
