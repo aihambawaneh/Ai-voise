@@ -16,7 +16,7 @@ function App() {
   const [pptxUrl, setPptxUrl] = useState('');
   const [language, setLanguage] = useState('Arabic Fusha');
   const [level, setLevel] = useState('student');
-  
+
   const recognitionRef = useRef(null);
   const audioRef = useRef(null);
 
@@ -98,7 +98,7 @@ function App() {
     if (currentSlide.audio_url) {
       const audioUrl = `${API_BASE}${currentSlide.audio_url}`;
       if (audioRef.current.src !== audioUrl) {
-          audioRef.current.src = audioUrl;
+        audioRef.current.src = audioUrl;
       }
       audioRef.current.play().catch(e => console.error("Audio Play Error:", e));
       setIsPlaying(true);
@@ -140,7 +140,7 @@ function App() {
   return (
     <div className="app-container rtl">
       <audio ref={audioRef} onEnded={handleAudioEnd} />
-      
+
       <header className="glass-header">
         <h1>{language === 'Arabic Saudi' ? 'مدرّس الـ AI السعودي' : 'معلّم الذكاء الاصطناعي'}</h1>
         <div className="settings-bar">
@@ -161,7 +161,7 @@ function App() {
         {!slides.length ? (
           <section className="input-section">
             <div className="mic-container">
-              <motion.button 
+              <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className={`mic-button ${isRecording ? 'recording' : ''}`}
@@ -169,21 +169,21 @@ function App() {
               >
                 {isRecording ? <MicOff size={48} /> : <Mic size={48} />}
               </motion.button>
-              <h2 style={{fontSize: '2rem', margin: '0'}}>أهلاً بك، عن ماذا نذاكر اليوم؟</h2>
-              <p style={{color: 'var(--text-dim)'}}>{isRecording ? 'أنا أسمعك الآن...' : 'اضغط على الميكروفون وابدأ بالتحدث عن موضوعك'}</p>
+              <h2 style={{ fontSize: '2rem', margin: '0' }}>أهلاً بك، عن ماذا نذاكر اليوم؟</h2>
+              <p style={{ color: 'var(--text-dim)' }}>{isRecording ? 'أنا أسمعك الآن...' : 'اضغط على الميكروفون وابدأ بالتحدث عن موضوعك'}</p>
             </div>
-            
+
             <div className="transcript-box">
-              <textarea 
+              <textarea
                 placeholder="مثلاً: اشرح لي عن الثقوب السوداء..."
                 value={transcript}
                 onChange={(e) => setTranscript(e.target.value)}
               />
             </div>
 
-            <button 
-              className="generate-button" 
-              onClick={() => handleGenerate()} 
+            <button
+              className="generate-button"
+              onClick={() => handleGenerate()}
               disabled={loading || !transcript.trim()}
             >
               {loading ? <Loader2 className="animate-spin" /> : 'توليد المحاضرة الآن'}
@@ -193,7 +193,7 @@ function App() {
           <section className="player-section slide-in">
             <div className="lecture-slides-container">
               <AnimatePresence mode="wait">
-                <motion.div 
+                <motion.div
                   key={currentSlideIndex}
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -228,7 +228,14 @@ function App() {
                 <a href={`${API_BASE}${pptxUrl}`} download className="action-btn primary">
                   <Download size={18} /> تحميل البوربوينت
                 </a>
-                <button onClick={() => { stopAudio(); setSlides([]); }} className="action-btn">
+                <button
+                  onClick={async () => {
+                    stopAudio();
+                    setSlides([]);
+                    try { await axios.post(`${API_BASE}/clear`); } catch (e) { console.error(e); }
+                  }}
+                  className="action-btn"
+                >
                   <RefreshCw size={18} /> موضوع جديد
                 </button>
               </div>
@@ -236,7 +243,7 @@ function App() {
           </section>
         )}
       </main>
-      
+
       <div className="ambient-bg">
         <div className="blob blob-1"></div>
         <div className="blob blob-2"></div>

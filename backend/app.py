@@ -25,30 +25,44 @@ for folder in [STATIC_FOLDER, AUDIO_FOLDER]:
         os.makedirs(folder)
 
 def cleanup_old_files():
-    """Delete files and folders older than 10 minutes."""
-    now = time.time()
-    minutes_limit = 10 * 60 
+    """Delete all previous audio folders and old pptx files immediately."""
+    import shutil
     
-    # Cleanup audio folders
-    for item in os.listdir(AUDIO_FOLDER):
-        item_path = os.path.join(AUDIO_FOLDER, item)
-        if os.path.isdir(item_path):
-            if now - os.path.getmtime(item_path) > minutes_limit:
-                import shutil
-                shutil.rmtree(item_path)
-                print(f"🧹 Cleaned up old folder: {item}")
+    # 1. Cleanup everything in audio folder
+    if os.path.exists(AUDIO_FOLDER):
+        for item in os.listdir(AUDIO_FOLDER):
+            item_path = os.path.join(AUDIO_FOLDER, item)
+            try:
+                if os.path.isdir(item_path):
+                    shutil.rmtree(item_path)
+                    print(f"🧹 Cleaned up folder: {item}")
+                else:
+                    os.remove(item_path)
+                    print(f"🧹 Cleaned up file: {item}")
+            except Exception as e:
+                print(f"⚠️ Error cleaning up {item}: {e}")
 
-    # Cleanup pptx files
-    for item in os.listdir(STATIC_FOLDER):
-        if item.endswith(".pptx"):
-            item_path = os.path.join(STATIC_FOLDER, item)
-            if now - os.path.getmtime(item_path) > minutes_limit:
-                os.remove(item_path)
-                print(f"🧹 Cleaned up old file: {item}")
+    # 2. Cleanup old pptx files in static folder
+    if os.path.exists(STATIC_FOLDER):
+        for item in os.listdir(STATIC_FOLDER):
+            if item.endswith(".pptx"):
+                item_path = os.path.join(STATIC_FOLDER, item)
+                try:
+                    os.remove(item_path)
+                    print(f"🧹 Cleaned up old pptx: {item}")
+                except Exception as e:
+                    print(f"⚠️ Error cleaning up {item}: {e}")
+
 
 @app.route('/health')
 def health():
     return "OK", 200
+
+@app.route('/clear', methods=['POST'])
+def clear_storage():
+    """Manually trigger cleanup."""
+    cleanup_old_files()
+    return jsonify({"status": "cleaned"}), 200
 
 @app.route('/static/<path:filename>')
 def serve_static(filename):
