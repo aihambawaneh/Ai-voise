@@ -22,7 +22,7 @@ genai.configure(api_key=api_keys[0])
 def get_best_model():
     try:
         models = [m.name for m in genai.list_models()]
-        print(f"📦 Available models: {models}")
+        print(f"[PACK] Available models: {models}")
         
         for m in genai.list_models():
             if 'generateContent' in m.supported_generation_methods:
@@ -32,7 +32,7 @@ def get_best_model():
             if 'generateContent' in m.supported_generation_methods:
                 return m.name
     except Exception as e:
-        print(f"❌ Error listing models: {e}")
+        print(f"[ERROR] Error listing models: {e}")
     return 'gemini-1.5-flash'
 
 class AI_Brain:
@@ -127,7 +127,7 @@ class AI_Brain:
                     genai.configure(api_key=new_key)
                     self.model = genai.GenerativeModel(self.model_name, generation_config={"response_mime_type": "application/json"})
                     
-                    print(f"⚠️ Quota hit. Switching to key {current_key_header + 1} and retrying in {wait_time}s...")
+                    print(f"[WARN] Quota hit. Switching to key {current_key_header + 1} and retrying in {wait_time}s...")
                     import time
                     time.sleep(wait_time)
                     continue
